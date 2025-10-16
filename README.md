@@ -8,23 +8,18 @@ A simple C# Windows Forms application for capturing webcam video and screenshots
 - Take screenshots and save them to disk
 - Adjustable **brightness** and **contrast** using trackbars
 - Record video frames and save as MP4
-- Lightweight and easy to use
+- Detect Motion in the video
 
 ## Screenshot
 
-<img width="796" height="486" alt="image" src="https://github.com/user-attachments/assets/a2e5c7d5-1fa8-43ba-ae13-a889d3a32bb6" />
+<img width="796" height="477" alt="image" src="https://github.com/user-attachments/assets/e50e046b-3409-4e3a-90ee-ee846d227324" />
+
 
 ## Requirements
 
 - Windows 10/11
 - [.NET 8.0 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
 - Visual Studio 2022
-- NuGet packages:
-  - AForge.Video
-  - AForge.Video.DirectShow
-  - OpenCvSharp4
-  - OpenCvSharp4.Extensions
-  - OpenCvSharp4.runtime.win
 
 ## Installation
 
