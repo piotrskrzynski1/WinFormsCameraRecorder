@@ -27,8 +27,59 @@ namespace WinFormsApp1
         private string buttontext = "";
         private int currentContrast = 0;
         private int currentBrightness = 0;
+        private float tolerance = 1;
+        private float threshold = 1;
+        private float CompareBitmaps(Bitmap map1, Bitmap map2, float tolerance)
+        {
+            if (map1.Width != map2.Width || map1.Height != map2.Height)
+                throw new ArgumentException("Bitmaps must be the same size.");
 
-        private void CreateMp4FromBitmaps(List<Bitmap> frames, string outputFilePath, double fps = 10.0)
+            int width = map1.Width;
+            int height = map1.Height;
+            int count = 0;
+
+            // blokujemy bitmapy i uzyskujemy wskaźnik do surowych danych
+            BitmapData bd1 = map1.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
+            BitmapData bd2 = map2.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
+
+            int stride1 = bd1.Stride;
+            int stride2 = bd2.Stride;
+
+            unsafe
+            {
+                byte* ptr1 = (byte*)bd1.Scan0;
+                byte* ptr2 = (byte*)bd2.Scan0;
+
+                for (int y = 0; y < height; y++)
+                {
+                    byte* row1 = ptr1 + (y * stride1);
+                    byte* row2 = ptr2 + (y * stride2);
+                    for (int x = 0; x < width; x++)
+                    {
+                        int b1 = row1[x * 3 + 0];
+                        int g1 = row1[x * 3 + 1];
+                        int r1 = row1[x * 3 + 2];
+
+                        int b2 = row2[x * 3 + 0];
+                        int g2 = row2[x * 3 + 1];
+                        int r2 = row2[x * 3 + 2];
+
+                        float avg1 = (r1 + g1 + b1) / 3f;
+                        float avg2 = (r2 + g2 + b2) / 3f;
+
+                        if (Math.Abs(avg1 - avg2) >= tolerance)
+                            count++;
+                    }
+                }
+            }
+
+            map1.UnlockBits(bd1);
+            map2.UnlockBits(bd2);
+
+            return (float)count / (width * height);
+        }
+
+        private void CreateMp4FromBitmaps(List<Bitmap> frames, string outputFilePath, double fps = 24.0)
         {
             if (frames == null || frames.Count == 0)
             {
@@ -113,11 +164,24 @@ namespace WinFormsApp1
             try
             {
                 frameBmp = (Bitmap)eventArgs.Frame.Clone();
+  
                 adjusted = ApplyBrightnessContrast(frameBmp, currentBrightness, currentContrast);
                 if (pictureBox.Image != null) pictureBox.Image.Dispose();
                 pictureBox.Image = (Bitmap)adjusted.Clone();
+                Bitmap previous = image;
                 image = (Bitmap)adjusted.Clone();
-                
+               
+                tolerance = trackBar3.Value;
+
+                float result = 0;
+                if (previous != null)
+                {
+                    result = CompareBitmaps(previous, image, tolerance);
+                    previous.Dispose();
+                }
+
+                progressBar1.Value = Math.Min(100, (int)(result * 100));
+
                 if (recording)
                 {
                     var clone = (Bitmap)adjusted.Clone();
@@ -159,12 +223,12 @@ namespace WinFormsApp1
 
         private void scrnBtn_Click(object sender, EventArgs e)
         {
+            Bitmap tosave = null;
             if (image != null)
             {
-                image.Dispose();
+                tosave = (Bitmap)image.Clone();
             }
-            image = (Bitmap)pictureBox.Image;
-            if (pictureBox.Image == null)
+            if (tosave == null)
             {
                 MessageBox.Show("Brak obrazu do zapisu!");
                 return;
@@ -185,25 +249,26 @@ namespace WinFormsApp1
                         format = ImageFormat.Bmp;
                         break;
                 }
-                image.Save(saveFileDialog.FileName, format);
+                tosave.Save(saveFileDialog.FileName, format);
                 MessageBox.Show("Zapisano obraz!");
             }
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
- 
+
             Button btn = sender as Button;
             if (btn != null)
             {
                 if (buttontext == "")
                 {
                     buttontext = btn.Text;
-            }
+                }
                 if (recording)
                 {
                     btn.Text = buttontext;
-                } else
+                }
+                else
                 {
                     btn.Text = "STOP";
                 }
@@ -245,5 +310,6 @@ namespace WinFormsApp1
         {
             currentBrightness = trackBar2.Value;
         }
+
     }
 }
